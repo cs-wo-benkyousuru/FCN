@@ -13,8 +13,8 @@ from FCNModel import FCN8s
 import torchvision.transforms.functional as TF
 import random
 
-def pick_random_imgs(cropSize, num, root='.\\data\\VOCdevkit\\VOC2012'):
-    txt_fname = root + '\\ImageSets\\Segmentation\\val.txt'
+def pick_random_imgs(cropSize, num, root='./data/VOCdevkit/VOC2012'):
+    txt_fname = root + '/ImageSets/Segmentation/val.txt'
     with open(txt_fname, 'r') as f:
         images = f.read().split()
     dataList = [os.path.join(root, 'JPEGImages', i + '.jpg') for i in images]
@@ -86,7 +86,7 @@ for img in d:
     img = torch.unsqueeze(img, dim=0)
     img = img.to(device)
     out = model(img)
-    pred = out.max(1)[1].squeeze().data.numpy()
+    pred = out.max(1)[1].squeeze().data.cpu().numpy()
     pred = cm[pred] 
     p.append(pred)
 
@@ -103,18 +103,4 @@ for x, y, z in zip(d, l, p):
     i += 1
 
 plt.show()
-
-# input_shape = (320, 480)
-# img = img_transforms(img, input_shape)
-# img = torch.unsqueeze(img, dim=0)
-# out = model(img)
-# print(out.shape)  #torch.Size([1, 21, 320, 480])
-# cm = np.array(colormap).astype('uint8')
-# pred = out.max(1)[1].squeeze().data.numpy()
-# print(pred.shape)  #(320, 480)
-# pred = cm[pred] 
-# print(pred.shape)
-# plt.subplot(1, 2, 2)
-# plt.imshow(pred)
-# plt.show()
 

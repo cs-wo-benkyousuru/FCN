@@ -12,8 +12,8 @@ from FCNModel import FCN8s
 import torchvision.transforms.functional as TF
 
 
-def read_images(root='.\\data\\VOCdevkit\\VOC2012', train=True):
-    txt_fname = root + '\\ImageSets\\Segmentation\\' + \
+def read_images(root='./data/VOCdevkit/VOC2012', train=True):
+    txt_fname = root + '/ImageSets/Segmentation/' + \
         ('train.txt' if train else 'val.txt')
     with open(txt_fname, 'r') as f:
         images = f.read().split()
@@ -138,41 +138,59 @@ test_data = DataLoader(test_set, shuffle=True, batch_size=64)
 
 model = FCN8s(21)
 loss_func = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(model.parameters(), lr=0.02, weight_decay=1e-4)
+optimizer = torch.optim.SGD(model.parameters(), lr=0.03, weight_decay=1e-4)
 optimizer = ScheduledOptim(optimizer)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 
-epoch_nums = 10
-loss_list = []
+epoch_nums = 80
+train_loss_list = []
 epoch_list = []
+test_loss_list = []
 
 for x in range(epoch_nums):
+    if x > 0 and x % 50 == 0:
+        optimizer.set_learning_rate(optimizer.learning_rate * 0.1)
     i = 0
-    epochLoss = 0
+    train_loss = 0
     print('第{}个epoch.'.format(x + 1))
     for imgs, labels in train_data:
         imgs = imgs.to(device)
         labels = labels.to(device)
         #print(imgs.shape)     # torch.Size([64, 3, 320, 480])
         # print(labels.shape)  # torch.Size([64, 320, 480])
-        print('第{}个epoch第{}个mini-batch.'.format(x + 1, i + 1))
+        print('第{}个epoch第{}个batch.'.format(x + 1, i + 1))
         outputs = model(imgs)
         #print(outputs.shape)  # torch.Size([64, 21, 320, 480])
         loss = loss_func(outputs, labels)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        print('第{}个epoch第{}个mini-batch结束.'.format(x + 1, i + 1))
-        epochLoss += loss.item()
+        print('第{}个epoch第{}个batch结束.'.format(x + 1, i + 1))
+        train_loss += loss.item()
         i += 1
-    loss_list.append(epochLoss)
+    train_loss_list.append(train_loss)
     epoch_list.append(x)
+    
+
+    test_loss = 0
+    with torch.no_grad():
+        for imgs, labels in test_data:
+            imgs = imgs.to(device)
+            labels = labels.to(device)
+            outputs = model(imgs)
+            test_loss += loss_func(outputs, labels).item()
+    test_loss_list.append(test_loss)
+    
     print('第{}个epoch结束.'.format(x + 1))
+
 
 torch.save(model, "FCN.nn")
 
-plt.plot(epoch_list, loss_list)
-plt.xlabel('dencent times')
+plt.subplot(1, 2, 1)
+plt.plot(epoch_list, train_loss_list)
+plt.subplot(1, 2, 2)
+plt.plot(epoch_list, test_loss_list)
+plt.xlabel('epoch times')
 plt.ylabel('loss')
 plt.show()
